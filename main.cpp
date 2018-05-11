@@ -59,9 +59,9 @@ int main(int argc, char* argv[]){
 
   // 1回目の行列の転置 http://www.clg.niigata-u.ac.jp/~medimg/practice_medical_imaging/imgproc_scion/5fourier/index.htm
   std::complex<double> transposeFFT[YOKO][TATE];
-	for (i = 0; i < TATE; i++) {
-		for (j = 0; j < YOKO; j++) {
-        transposeFFT[j][i] = horizontalFFT[i][j];
+	for (i = 0; i < YOKO; i++) {
+		for (j = 0; j < TATE; j++) {
+        transposeFFT[i][j] = horizontalFFT[j][i];
     }
   }
 
@@ -93,16 +93,37 @@ int main(int argc, char* argv[]){
     }
   }
 
-  // sprintf(filenameout, "FFT_output.pgm");
-  // if ((fpout = fopen(filenameout, "wb")) == NULL) { error(filenameout); }
-  // if ((fpout = fopen(filenameout, "wb")) == NULL) {}
-  // fprintf(fpout, "P5¥n%d %d¥n255¥n", YOKO, TATE);
-  // for (i = 0; i<TATE; i++) {
-  //    for (j = 0; j<YOKO; j++) {
-  //        fprintf(fpout, "%c", imageout[i][j]);
-  //    }
-  // }
-  // fclose(fpout);
+  // 0〜255に正規化するために最大値と最小値をまずは取得する
+  double max_power = 0.0;
+  double min_power = 0.0;
+  for (i = 0; i<TATE; i++) {
+     for (j = 0; j<YOKO; j++) {
+          double real = outputFFT[i][j].real();
+          double imag = outputFFT[i][j].imag();
+          double power = log(real*real+imag*imag);
+          if (power > max_power){
+            max_power = power;
+          }
+          if (power < min_power){
+            min_power = power;
+          }
+     }
+  }
+
+  sprintf(filenameout, "FFT_output.pgm");
+  if ((fpout = fopen(filenameout, "wb")) == NULL) { error(filenameout); }
+  fprintf(fpout, "P5¥n%d %d¥n255¥n", YOKO, TATE); // Windowsはこっち
+  // fprintf(fpout, "P5\n%d %d\n255\n", YOKO, TATE); // Macはこっち
+  for (i = 0; i<TATE; i++) {
+     for (j = 0; j<YOKO; j++) {
+          double real = outputFFT[i][j].real();
+          double imag = outputFFT[i][j].imag();
+          double power = log(real*real+imag*imag);
+          power = (power-min_power)/(max_power-min_power)*255.0; //0〜255に正規化
+          fprintf(fpout, "%c", (int)power);
+     }
+  }
+  fclose(fpout);
  return 0;
 }
 
