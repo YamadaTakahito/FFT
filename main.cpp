@@ -28,7 +28,6 @@ int main(int argc, char* argv[]){
 	int i, j, k = 0;
 	double a, b;
 
-
 	sprintf(filenamein, "BARBARA.Y");
 	if ((fpin = fopen(filenamein, "rb")) == NULL) { error(filenamein); }
 	for (i = 0; i<TATE; i++) {
@@ -38,9 +37,10 @@ int main(int argc, char* argv[]){
 	}
 	fclose(fpin);
 
-	std::complex<double> arr[YOKO];
-
-	for (i = 0; i < TATE; i++) {            /////////  縦方向   ////////////
+  /////////  水平方向のFFT   ////////////
+  std::complex<double> horizontalFFT[TATE][YOKO];
+	for (i = 0; i < TATE; i++) {
+	  std::complex<double> arr[YOKO]; //初期化
 		for (j = 0; j < YOKO; j++) {
 			arr[j] = std::complex<double>(imagein[i][j], 0);
 		}
@@ -52,38 +52,57 @@ int main(int argc, char* argv[]){
 		pArr = arr;
 
 		std::complex<double> *pfft = recursive_fft(pArr, len);
-		std::complex<double>* fft = new std::complex<double>[len];
-		for (int j = 0; j < len; j++) {
-			fft[j] = *(pfft + j);                 /////  FFT  /////
-		}
-
-		for (int j = 0; j < len; j++) {
-			a = pow((double)fft[j].real(), 2.0);
-			b = pow((double)fft[j].imag(), 2.0);
-			imageout[i][j] = (int)log(sqrt(a + b));
-
-      
-			printf("imageout[%d][%d] = %d¥n", i,j,imageout[i][j]);
-
-			if (imageout[i][j] < 0) {
-				imageout[i][j] = 0;
-			}
-			if (imageout[i][j] > 255) {
-				imageout[i][j] = 255;
-			}
+		for (int j = 0; j < YOKO; j++) {
+			horizontalFFT[i][j] = *(pfft + j);                 /////  FFT  /////
 		}
 	}
 
-  sprintf(filenameout, "FFT_output.pgm");
-  if ((fpout = fopen(filenameout, "wb")) == NULL) { error(filenameout); }
-  if ((fpout = fopen(filenameout, "wb")) == NULL) {}
-  fprintf(fpout, "P5¥n%d %d¥n255¥n", YOKO, TATE);
-  for (i = 0; i<TATE; i++) {
-     for (j = 0; j<YOKO; j++) {
-         fprintf(fpout, "%c", imageout[i][j]);
-     }
+  // 1回目の行列の転置 http://www.clg.niigata-u.ac.jp/~medimg/practice_medical_imaging/imgproc_scion/5fourier/index.htm
+  std::complex<double> transposeFFT[YOKO][TATE];
+	for (i = 0; i < TATE; i++) {
+		for (j = 0; j < YOKO; j++) {
+        transposeFFT[j][i] = horizontalFFT[i][j];
+    }
   }
-  fclose(fpout);
+
+  /////////  縦方向のFFT   ////////////
+  std::complex<double> verticalFFT[YOKO][TATE];
+  for (i = 0; i < YOKO; i++) {
+    std::complex<double> arr[TATE]; //初期化
+    for (j = 0; j < TATE; j++) {
+      arr[j] = transposeFFT[i][j];
+    }
+
+    std::complex<double> *pArr;
+    int len;
+
+    len = sizeof(arr) / sizeof(arr[0]);
+    pArr = arr;
+
+    std::complex<double> *pfft = recursive_fft(pArr, len);
+    for (int j = 0; j < TATE; j++) {
+      verticalFFT[i][j] = *(pfft + j);                 /////  FFT  /////
+    }
+  }
+
+  // 2回目の行列の転置 http://www.clg.niigata-u.ac.jp/~medimg/practice_medical_imaging/imgproc_scion/5fourier/index.htm
+  std::complex<double> outputFFT[TATE][YOKO];
+  for (i = 0; i < TATE; i++) {
+    for (j = 0; j < YOKO; j++) {
+        outputFFT[i][j] = verticalFFT[j][i];
+    }
+  }
+
+  // sprintf(filenameout, "FFT_output.pgm");
+  // if ((fpout = fopen(filenameout, "wb")) == NULL) { error(filenameout); }
+  // if ((fpout = fopen(filenameout, "wb")) == NULL) {}
+  // fprintf(fpout, "P5¥n%d %d¥n255¥n", YOKO, TATE);
+  // for (i = 0; i<TATE; i++) {
+  //    for (j = 0; j<YOKO; j++) {
+  //        fprintf(fpout, "%c", imageout[i][j]);
+  //    }
+  // }
+  // fclose(fpout);
  return 0;
 }
 
