@@ -62,6 +62,7 @@ int main(int argc, char* argv[]){
 			b = pow((double)fft[j].imag(), 2.0);
 			imageout[i][j] = (int)log(sqrt(a + b));
 
+      
 			printf("imageout[%d][%d] = %d¥n", i,j,imageout[i][j]);
 
 			if (imageout[i][j] < 0) {
